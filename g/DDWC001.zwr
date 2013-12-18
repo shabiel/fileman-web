@@ -1,0 +1,13 @@
+Web Service data definitions
+GT.M 18-DEC-2013 12:38:55 ZWR
+^%W(17.6001,0)="WEB SERVICE URL HANDLER^17.6001S^13^13"
+^%W(17.6001,12,0)="GET"
+^%W(17.6001,12,1)="fileman/dd/{fields}"
+^%W(17.6001,12,2)="DD^DDWC001"
+^%W(17.6001,12,"AUTH")=1
+^%W(17.6001,13,0)="POST"
+^%W(17.6001,13,1)="fileman/vals"
+^%W(17.6001,13,2)="VALS^DDWC001"
+^%W(17.6001,13,"AUTH")=1
+^%W(17.6001,"B","GET","fileman/dd/{fields}","DD^DDWC001",12)=""
+^%W(17.6001,"B","POST","fileman/vals","VALS^DDWC001",13)=""
