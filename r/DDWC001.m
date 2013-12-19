@@ -1,4 +1,4 @@
-DDWC001 ; VEN/SMH - A strange name for an unknown routine;2013-10-25  1:38 AM
+DDWC001 ; VEN/SMH - A strange name for an unknown routine;2013-10-25  1:38 AM ; 12/18/13 3:20pm
  ;
 DD(RESULTS,ARGS) ; Get fileman field value, handles fileman/dd/{fields}
  ; Supported fields format:
@@ -131,7 +131,7 @@ VALS(ARGS,BODY,RESULT) ; POST - Validate a set of fields as a web service.
  . N CNT S CNT=1
  . F  S V=$Q(@V) Q:'$L(V)  S RESULT("fda",CNT,V)=@V,CNT=CNT+1
  ;
- ZSHOW "V":^KBANFDA
+ ; ZSHOW "V":^KBANFDA
  ; TODO: DDERR - deal with this.
  N JSON,DDERR
  D ENCODE^VPRJSON($NA(RESULT),$NA(JSON),$NA(DDERR))
@@ -155,7 +155,7 @@ JSN(N) ; Javascript number
  ; ^KBANFDA("V",10)="DDFERR(""DIERR"",1,""PARAM"",""IENS"")=""+1,"""
  ; ^KBANFDA("V",11)="DDFERR(""DIERR"",1,""TEXT"",1)=""The value 'asdf' for field NAME in file PATIENT is not valid."""
  ; ^KBANFDA("V",12)="DDFERR(""DIERR"",""E"",701,1)="""""
-TEST
+TEST 
  N F
  S F("fields")=".85,.01:999"
  N KBANR
@@ -168,13 +168,13 @@ TEST
  D ASSERT($D(KBANJ("0.85,0.06")))
  QUIT
  ;
-TEST2
+TEST2 
  ;
  S JSON(1)="{""0.85"":[{""dd"":""0.01"",""ien"":""+1,"",""value"":""""},{""dd"":""0.02"",""ien"":""+1,"",""value"":""""},{""dd"":""0.03"",""ien"":""+1,"",""value"":""""},{""dd"":""0.04"",""ien"":""+1,"",""value"":""""},{""dd"":""0.05"",""ien"":""+1,"",""value"":""""},{""dd"":""0.06"",""ien"":""+1,"",""value"":""""},{""dd"":""0.07"",""ien"":""+1,"",""value"":""""},{""dd"":""0.08"",""ien"":""+1,"",""value"":""""},{""dd"":""0.09"",""ien"":""+1,"",""value"":""777777""},{""dd"":""10.1"",""ien"":""+1,"",""value"":""""},{""dd"":""10.2"",""ien"":""+1,"",""value"":""""},{""dd"":""10.21"",""ien"":""+1,"",""value"":""""},{""dd"":""10.22"",""ien"":""+1,"",""value"":""""},{""dd"":""10.3"",""ien"":""+1,"",""value"":""""},{""dd"":""10.4"",""ien"":""+1,"",""value"":""""},{""dd"":""10.5"",""ien"":""+1,"",""value"":""""},{""dd"":""20.2"",""ien"":""+1,"",""value"":""THIS IS NOT STANDARD MUMPS CODE""}]}"
  S %=$$VALS(,.JSON,.RES)
  ZWRITE RES
  QUIT
  ;
-ASSERT(CONDITION)
+ASSERT(CONDITION) 
  I 'CONDITION S $EC=",U-ASSERTION-FAILED,"
  QUIT
