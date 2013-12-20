@@ -1,6 +1,11 @@
 /* Fileman web services Mocha command line tests */
 /* VEN/SMH - Sam Habiel at VISTA Experise Network */
 
+/* Example invocation: 
+mocha --server=http://localhost:9999 --ac=1programmer --vc=programmer1 test-mocha.js
+mocha --server=http://thebes.smh101.com --ac=1programmer --vc=asdfasdf test-mocha.js
+*/
+
 // Test stuff
 var request = require('supertest');
 var assert = require("assert");
