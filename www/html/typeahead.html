@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <link type="text/css" rel="stylesheet" href="../css/foundation.min.css" />
+    <link type="text/css" rel="stylesheet" href="../css/typeahead.js-bootstrap.css" />
+    <link type="text/css" rel="stylesheet" href="../css/bootstrap-better-typeahead.css" />
+  </head>
+  <body>
+    <div class="row">
+        <div class="panel">
+            <form>
+            <input id="test" type="text" />
+            </form>
+        </div>
+    </div>
+    <script src="../bower_components/jquery/jquery.js"></script>
+    <script src="../bower_components/typeahead.js/dist/typeahead.js"></script>
+    <script src="../js/bootstrap-better-typeahead.js"></script>
+    <script src="../bower_components/hogan/web/builds/2.0.0/hogan-2.0.0.js"></script>
+    <script>
+        function thisFilter(parsedResponse) {
+            var rtnJSON = [];
+            for (var i in parsedResponse) 
+            {
+                if (!parsedResponse.hasOwnProperty(i)) continue;
+                var item = {};
+                item.tokens = [];
+                item.ids = [];
+                item.headers = [];
+                for (var j in parsedResponse[i])
+                {
+                    if (!parsedResponse[i].hasOwnProperty(j)) continue;
+                    if (j.indexOf('IEN') > -1) item.ien = parsedResponse[i][j];
+                    if (j.indexOf('INDEX VALUE 1') > -1) {
+                        item.tokens.push(parsedResponse[i][j].toString())
+                        item.value = parsedResponse[i][j]
+                        };
+                    if (j.charAt(0) == '#') {
+                        item.ids.push(parsedResponse[i][j]); // identifiers
+                        item.headers.push(j);
+                        };
+                }
+
+                rtnJSON.push(item);
+            }
+            console.log(rtnJSON);
+            return rtnJSON;
+        }
+        $(document).ready(function() {
+          $('#test').typeahead({
+            name: 'files',
+            prefetch: {
+              url: '/fileman/.85/B/',
+              filter: thisFilter,
+              ttl: 0
+              },
+            template: [ '<p style="display: inline"><strong>{{value}}</strong></p>',
+                        '<table style="display: inline-table">',
+                        '<tr>',
+                        '{{#headers}}<th>{{.}}</th>{{/headers}}',
+                        '</tr>',
+                        '<tr>',
+                        '{{#ids}}<td>{{.}}</td>{{/ids}}',
+                        '</tr>',
+                        '</table>',
+                      ].join(''),
+            engine: Hogan,
+            minLength: 0
+           }).on('typeahead:selected', function (obj, datum) {
+             console.log(obj);
+             console.log(datum);
+           });
+        });
+    </script>
+  </body>
+</html>
+

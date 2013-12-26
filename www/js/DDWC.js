@@ -6,6 +6,8 @@ DHCP.DI = {} ; //Fileman home
 // @field -> field number; field range (:); fields (;)
 //        -> E.g. 0.01; 0.01:9999; 0.01;0.02
 DHCP.DI.dd = function (file, field) {
+    // Remove all children first! So sad!
+    $('form[name="form"]').empty();
     var request = new XMLHttpRequest();
     request.open("GET","/fileman/dd/" + file + "," + field);
     request.onload = function (file,field) {
@@ -45,6 +47,7 @@ DHCP.DI.createField = function (json,file,field) {
     label.setAttribute("for",name);
     label.appendChild(document.createTextNode(attrs.label));
 
+    /*
     function createDiv(show)
     {
         var div = document.getElementById("info");
@@ -54,6 +57,7 @@ DHCP.DI.createField = function (json,file,field) {
 
     label.addEventListener("mouseenter",createDiv(true),false);
     label.addEventListener("mouseleave",createDiv(false),false);
+    */
 
     var input = document.createElement("input");
 
@@ -259,6 +263,88 @@ DHCP.DI.validate = function() {
     finally {
         return false;
     }
+    
 };
 
-document.addEventListener("DOMContentLoaded",DHCP.DI.dd(.85,".01:99999"), false);
+// Transform the lister's response to something usable
+// by Typeahead
+// This will change in the future as I settle on a format.
+DHCP.DI.listerTypeaheadTransfromer = function (parsedResponse) {
+    var rtnJSON = [];
+    for (var i in parsedResponse) 
+    {
+        if (!parsedResponse.hasOwnProperty(i)) continue;
+        var item = {};
+        item.tokens = [];
+        item.ids = [];
+        item.headers = [];
+        for (var j in parsedResponse[i])
+        {
+            if (!parsedResponse[i].hasOwnProperty(j)) continue;
+            if (j.indexOf('IEN') > -1) item.ien = parsedResponse[i][j];
+            if (j.indexOf('INDEX VALUE 1') > -1) {
+                item.tokens.push(parsedResponse[i][j].toString())
+                item.value = parsedResponse[i][j]
+                };
+            if (j.charAt(0) == '#') {
+                item.ids.push(parsedResponse[i][j]); // identifiers
+                item.headers.push(j);
+                };
+        }
+
+        rtnJSON.push(item);
+    }
+    console.log(rtnJSON);
+    return rtnJSON;
+}
+    
+// Initialize the form
+DHCP.DI.initialize = function () {
+    
+    function cb2(e, datum)
+    {
+        var file = DHCP.DI.file;
+        var ien = datum.ien;
+    }
+    
+    // Call back function when we make a selection
+    function cb(e, datum)
+    {
+        var file = datum.ien;
+        var fn = datum.value;
+        DHCP.DI.file = file;
+        DHCP.DI.fileName = fn;
+        DHCP.DI.typeaheadPopulate(file, '#entries')
+    }
+
+    DHCP.DI.typeaheadPopulate(1, '#FOF', cb);
+}
+
+DHCP.DI.typeaheadPopulate = function (file, jQuerySelector, cb) {
+    $(jQuerySelector).typeahead({
+        name: file,
+        prefetch: {
+            url: '/fileman/' + file + '/B/',
+            filter: DHCP.DI.listerTypeaheadTransfromer,
+            ttl: 0  //bad idea, but prevents caching for now
+            },
+
+        template: [ '<p style="display: inline"><strong>{{value}}</strong></p>',
+                    '<table style="display: inline-table">',
+                    '<tr>',
+                    '{{#headers}}<th>{{.}}</th>{{/headers}}',
+                    '</tr>',
+                    '<tr>',
+                    '{{#ids}}<td>{{.}}</td>{{/ids}}',
+                    '</tr>',
+                    '</table>',
+                  ].join(''),
+        engine: Hogan,
+        limit: 10
+    }).on('typeahead:selected', function (obj, datum) {
+        if (cb) cb(obj,datum);
+        else console.log(obj,datum);
+    });
+}
+
+document.addEventListener("DOMContentLoaded",DHCP.DI.initialize(), false);

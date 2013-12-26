@@ -1,7 +1,6 @@
 /* Fileman web services Mocha command line tests */
 /* VEN/SMH - Sam Habiel at VISTA Experise Network */
 
-/* Requires Fileman 22.2 Language file */
 /* Requires node.js module supertest
    > npm install -g supertest
 */

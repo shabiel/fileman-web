@@ -6,20 +6,27 @@
     <title>Fileman Enter/Edit example</title>
     <link rel="stylesheet" href="../css/foundation.min.css" />
     <link rel="stylesheet" href="../css/app.css" />
-    <script type="text/javascript" src="../js/DDWC.js"></script>
+    <link rel="stylesheet" href="../css/typeahead.js-bootstrap.css" />
   </head>
   <body>
     <div class="row">
         <div class="small-4 columns">
-            <h3>Place holder for entries list</h3>
+            <h3>Select a file</h3>
+            <input type="text" id="FOF" placeholder="Select a file" />
+            <h3>Select an entry</h3>
+            <input type="text" id="entries" placeholder="Start typing" />
         </div>
         <div class="small-8 columns">
-            <h1>{{FILE NAME--EVENTUALLY}}</h1>
+            <h1 id="fileName"></h1>
             <form action="" name="form" method="POST" onsubmit="return DHCP.DI.validate()">
             </form>
         </div>
     </div>
     <div id="info">
     </div>
+    <script src="../bower_components/jquery/jquery.js"></script>
+    <script src="../bower_components/typeahead.js/dist/typeahead.js"></script>
+    <script src="../bower_components/hogan/web/builds/2.0.0/hogan-2.0.0.js"></script>
+    <script src="../js/DDWC.js"></script>
   </body>
 </html>
