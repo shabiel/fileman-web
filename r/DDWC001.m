@@ -142,6 +142,16 @@ VALS(ARGS,BODY,RESULT) ; POST - Validate a set of fields as a web service.
  ;I $D(^TMP($J)) D ADDCRLF^VPRJRUT(.RESULT) ; crlf the result
  ;
  QUIT ""
+ ;
+FDAPOST(ARGS,BODY,RESULT) ; Post an FDA directly to update Fileman Data
+ N PARSED ; Parsed array which stores each line on a separate node.
+ D PARSE10^VPRJRUT(.BODY,.PARSED) ; Parser
+ N I S I="" 
+ F  S I=$O(PARSED(I)) Q:I=""  D
+ . I PARSED(I)'="" S @PARSED(I)
+ D UPDATE^DIE("",$NA(FDA))
+ QUIT ""
+ ;
 JSN(N) ; Javascript number
  I $E(N)="." Q 0_N
  Q N
@@ -161,7 +171,7 @@ TEST
  N KBANR
  D DD(.KBANR,.F)
  N KBANJ
- D DECODE^VPRJSON($NA(KBANR),$NA(KBANJ)) ; there is a bug here!!!! need to fix tomorrow
+ D DECODE^VPRJSON($NA(KBANR),$NA(KBANJ))
  ;ZWRITE KBANR
  ;ZWRITE KBANJ
  D ASSERT($D(KBANJ("0.85,0.01")))
@@ -169,7 +179,6 @@ TEST
  QUIT
  ;
 TEST2 
- ;
  S JSON(1)="{""0.85"":[{""dd"":""0.01"",""ien"":""+1,"",""value"":""""},{""dd"":""0.02"",""ien"":""+1,"",""value"":""""},{""dd"":""0.03"",""ien"":""+1,"",""value"":""""},{""dd"":""0.04"",""ien"":""+1,"",""value"":""""},{""dd"":""0.05"",""ien"":""+1,"",""value"":""""},{""dd"":""0.06"",""ien"":""+1,"",""value"":""""},{""dd"":""0.07"",""ien"":""+1,"",""value"":""""},{""dd"":""0.08"",""ien"":""+1,"",""value"":""""},{""dd"":""0.09"",""ien"":""+1,"",""value"":""777777""},{""dd"":""10.1"",""ien"":""+1,"",""value"":""""},{""dd"":""10.2"",""ien"":""+1,"",""value"":""""},{""dd"":""10.21"",""ien"":""+1,"",""value"":""""},{""dd"":""10.22"",""ien"":""+1,"",""value"":""""},{""dd"":""10.3"",""ien"":""+1,"",""value"":""""},{""dd"":""10.4"",""ien"":""+1,"",""value"":""""},{""dd"":""10.5"",""ien"":""+1,"",""value"":""""},{""dd"":""20.2"",""ien"":""+1,"",""value"":""THIS IS NOT STANDARD MUMPS CODE""}]}"
  S %=$$VALS(,.JSON,.RES)
  ZWRITE RES
