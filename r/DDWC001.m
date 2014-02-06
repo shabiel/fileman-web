@@ -145,12 +145,32 @@ VALS(ARGS,BODY,RESULT) ; POST - Validate a set of fields as a web service.
  ;
 FDAPOST(ARGS,BODY,RESULT) ; Post an FDA directly to update Fileman Data
  N PARSED ; Parsed array which stores each line on a separate node.
- D PARSE10^VPRJRUT(.BODY,.PARSED) ; Parser
+ D PARSE10^VPRJRUT(.BODY,.PARSED) ; Parse by CR/LF
+ ;
+ ; Process flags
+ N FLAGS S FLAGS=""
+ I $D(ARGS("flags")) S FLAGS=$$UP^VPRJRUT(ARGS("flags"))
+ ;
+ ; Set FDA
  N I S I="" 
  F  S I=$O(PARSED(I)) Q:I=""  D
  . I PARSED(I)'="" S @PARSED(I)
- D UPDATE^DIE("",$NA(FDA))
- QUIT ""
+ ;
+ N DIERR
+ N IEN,FILE
+ S FILE=$O(FDA(""))
+ D UPDATE^DIE(FLAGS,$NA(FDA),$NA(IEN))
+ ;
+ I $D(DIERR) DO  QUIT ""
+ . N ERROR
+ . N I S I=0  F  S I=$O(^TMP("DIERR",$J,I)) Q:'I  D
+ . . M ERROR("PARAM")=^TMP("DIERR",$J,I,"PARAM")
+ . . S ERROR("PARAM","CODE")=^TMP("DIERR",$J,I)
+ . . M ERROR("TEXT")=^TMP("DIERR",$J,I,"TEXT")
+ . . D SETERROR^VPRJRUT(400,,.ERROR)
+ . D CLEAN^DILF ; Remove Fileman temp vars
+ ;
+ QUIT "/fileman/"_FILE_"/"_IEN(1)
  ;
 JSN(N) ; Javascript number
  I $E(N)="." Q 0_N
