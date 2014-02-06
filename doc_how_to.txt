@@ -125,7 +125,7 @@ Let's do it, assuming we are using FDA as the variable:
   F  S I=$O(PARSED(I)) Q:I=""  D                                                                                                       
   . I PARSED(I)'="" S @PARSED(I)
   D UPDATE^DIE("",$NA(FDA))
-  QUIT ""
+  QUIT "" <-- Must quit with a value for any PUT or POST requests. See later for why.
 
 At the same time, on this instance, we need to make sure we are making a valid FDA. Here's the condensed DD...
 
@@ -173,3 +173,197 @@ Include COMPUTED fields:  (N/Y/R/B): NO//  - No record number (IEN), no Computed
 BWV NUMBER: 565                         WORK TITLE: Toccata and Fugue
   YEAR COMPOSED: 1780
 
+## Passing flags
+We need to support passing flags to the updater call. We need to decide a format--Since we are not passing in JSON using this call, we cannot pass it as part of the JSON. What we can do is to obtain it from the URL as a query variable.
+So, a url like https://thebes.smh101.com/fileman/fda?flags=E may do the trick. Supporting that in our code is easy.
+
+Notice that in our code, the FLAGS variable is obtained from ARGS("flags"), which is where MWS puts the query parameter from the URL.
+
+I made a consious decision for future compatibility not to restrict which flags can go into the updater. If there is an error, we will leave it to Fileman to handle that. But we will deal with that in a moment.
+
+FDAPOST(ARGS,BODY,RESULT) ; Post an FDA directly to update Fileman Data
+ N PARSED ; Parsed array which stores each line on a separate node.
+ D PARSE10^VPRJRUT(.BODY,.PARSED) ; Parse by CR/LF
+ ;
+ ; Process flags
+ N FLAGS S FLAGS=""
+ I $D(ARGS("flags")) S FLAGS=$$UP^VPRJRUT(ARGS("flags"))
+ ;                                                                                                                                    
+ ; Set FDA
+ N I S I="" 
+ F  S I=$O(PARSED(I)) Q:I=""  D
+ . I PARSED(I)'="" S @PARSED(I)
+ ;
+ D UPDATE^DIE(FLAGS,$NA(FDA))
+ QUIT ""
+
+Now, to test it using curl again. Before we do that, we have to find an appropriate experiment.
+
+Remember we had in our data dictionary a field named KEY that was a pointer? Normally, we will only be able to file it ONLY IF we supply it with a number, unless we supply the external form, which is the key name. Let's file our Toccata and Fugue in D minor BWV 565.
+
+GTM>ZWRITE ^MusicKey
+^MusicKey(0)="MUSICAL KEY^1002^5^5"
+^MusicKey(1,0)="F MAJOR"
+^MusicKey(2,0)="G MAJOR"
+^MusicKey(3,0)="D MAJOR"
+^MusicKey(4,0)="B FLAT MAJOR"
+^MusicKey(5,0)="D MINOR"
+^MusicKey("B","B FLAT MAJOR",4)=""
+^MusicKey("B","D MAJOR",3)=""
+^MusicKey("B","D MINOR",5)=""
+^MusicKey("B","F MAJOR",1)=""
+^MusicKey("B","G MAJOR",2)=""
+
+sakura@icarus:/var2/local/foia201303-2$ curl -k -XPOST https://thebes.smh101.com/fileman/fda?flags=E --data-binary @-
+FDA(1001,"+1,",.01)=565
+FDA(1001,"+1,",.02)="Toccata and Fugue"
+FDA(1001,"+1,",.03)=1680
+FDA(1001,"+1,",2.1)="D MINOR"
+
+And now let's check:
+
+Select BACH WERKE VERZEICHNIS BWV NUMBER: 565
+     1   565       Toccata and Fugue     
+     2   565       Toccata and Fugue     D MINOR
+CHOOSE 1-2: 2  565     Toccata and Fugue     D MINOR
+Another one: 
+Standard Captioned Output? Yes//   (Yes)
+Include COMPUTED fields:  (N/Y/R/B): NO//  - No record number (IEN), no Computed Fields
+
+BWV NUMBER: 565                         WORK TITLE: Toccata and Fugue
+  YEAR COMPOSED: 1680                   KEY: D MINOR
+
+That's great. The easy part of the coding is done.
+
+A required part of a RESTful interface is to return the URL where the created data can be accessed. This can be easily done. That's the purpose of the extrinsic return which we left as an empty string up till now.
+
+Run the curl command again, but this time add a `-i` to tell it to print out the return headers. Here they are:
+
+sakura@icarus:/var2/local/foia201303-2$ curl -k -i -XPOST https://thebes.smh101.com/fileman/fda?flags=E --data-binary @-
+FDA(1001,"+1,",.01)=565
+FDA(1001,"+1,",.02)="Toccata and Fugue"
+FDA(1001,"+1,",.03)=1680
+FDA(1001,"+1,",2.1)="D MINOR"
+HTTP/1.1 200 OK
+Date: Wed, 05 Feb 2014 22:02:34 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 0
+
+Let's make the change to return a url.
+
+FDAPOST(ARGS,BODY,RESULT) ; Post an FDA directly to update Fileman Data
+ N PARSED ; Parsed array which stores each line on a separate node.
+ D PARSE10^VPRJRUT(.BODY,.PARSED) ; Parse by CR/LF
+ ;
+ ; Process flags
+ N FLAGS S FLAGS=""
+ I $D(ARGS("flags")) S FLAGS=$$UP^VPRJRUT(ARGS("flags"))
+ ;
+ ; Set FDA
+ N I S I="" 
+ F  S I=$O(PARSED(I)) Q:I=""  D
+ . I PARSED(I)'="" S @PARSED(I)
+ ;
+ N IEN,FILE
+ S FILE=$O(FDA(""))
+ D UPDATE^DIE(FLAGS,$NA(FDA),$NA(IEN))
+ QUIT "/fileman/"_FILE_"/"_IEN(1)                                                                                                     
+
+---
+
+Let's try it now.
+
+sakura@icarus:/var2/local/foia201303-2$ curl -k -i -XPOST https://thebes.smh101.com/fileman/fda?flags=E --data-binary @-
+FDA(1001,"+1,",.01)=565
+FDA(1001,"+1,",.02)="Toccata and Fugue"
+FDA(1001,"+1,",.03)=1680
+FDA(1001,"+1,",2.1)="D MINOR"
+HTTP/1.1 201 Created
+Date: Wed, 05 Feb 2014 22:22:52 GMT
+Location: https://thebes.smh101.com/fileman/1001/10
+Content-Type: application/json; charset=utf-8
+Content-Length: 0
+
+We got the location header back telling us where the posted data is located. And let's try that URL:
+sakura@icarus:/var2/local/foia201303-2$ curl -k https://thebes.smh101.com/fileman/1001/10
+{"BWV NUMBER":565,"KEY":"D MINOR","WORK TITLE":"Toccata and Fugue","YEAR COMPOSED":1680}
+
+Perfect!
+
+---
+
+## Handling errors
+Right now we return with an HTTP success code whether the updater succeeded or not.
+
+We actually need to check whether fileman actually succeeded. We need to check the variable DIERR and return what's in TMP("DIERR",$J) as the error message.
+
+In my testing, it turned out that that format returned by Fileman is difficult to represent in JSON:
+
+^KBANERR("DIERR",16482,1)=701
+^KBANERR("DIERR",16482,1,"PARAM",0)=3
+^KBANERR("DIERR",16482,1,"PARAM",3)=1880
+^KBANERR("DIERR",16482,1,"PARAM","FIELD")=.03
+^KBANERR("DIERR",16482,1,"PARAM","FILE")=1001
+^KBANERR("DIERR",16482,1,"TEXT",1)="The value '1880' for field YEAR COMPOSED in file BACH WERKE VERZEICHNIS is not valid."
+^KBANERR("DIERR",16482,"E",701,1)=""
+
+So after some fiddling and addition of an expanded error format to MWS, this is the new code.
+
+FDAPOST(ARGS,BODY,RESULT) ; Post an FDA directly to update Fileman Data
+ N PARSED ; Parsed array which stores each line on a separate node.
+ D PARSE10^VPRJRUT(.BODY,.PARSED) ; Parse by CR/LF
+ ;                                                                                                                                    
+ ; Process flags
+ N FLAGS S FLAGS=""
+ I $D(ARGS("flags")) S FLAGS=$$UP^VPRJRUT(ARGS("flags"))
+ ;
+ ; Set FDA
+ N I S I="" 
+ F  S I=$O(PARSED(I)) Q:I=""  D
+ . I PARSED(I)'="" S @PARSED(I)
+ ;
+ N DIERR
+ N IEN,FILE
+ S FILE=$O(FDA(""))
+ D UPDATE^DIE(FLAGS,$NA(FDA),$NA(IEN))
+ ;
+ I $D(DIERR) DO  QUIT ""
+ . N ERROR
+ . N I S I=0  F  S I=$O(^TMP("DIERR",$J,I)) Q:'I  D
+ . . M ERROR("PARAM")=^TMP("DIERR",$J,I,"PARAM")
+ . . S ERROR("PARAM","CODE")=^TMP("DIERR",$J,I)
+ . . M ERROR("TEXT")=^TMP("DIERR",$J,I,"TEXT")
+ . . D SETERROR^VPRJRUT(400,,.ERROR)
+ . D CLEAN^DILF ; Remove Fileman temp vars
+ ;
+ QUIT "/fileman/"_FILE_"/"_IEN(1)
+
+To test it, try this:
+sakura@icarus:/tmp$ curl -ks -XPOST https://thebes.smh101.com/fileman/fda?flags=E --data-binary @- | python -mjson.tool
+FDA(1001,"+1,",.01)=565
+FDA(1001,"+1,",.02)="Toccata and Fugue"
+FDA(1001,"+1,",.03)=1880
+FDA(1001,"+1,",2.1)="D MINOR"
+<CTRL-D><CTRL-D>
+{
+    "apiVersion": "1.0", 
+    "error": {
+        "code": 400, 
+        "errors": [
+            {
+                "PARAM": {
+                    "0": 3, 
+                    "3": 1880, 
+                    "CODE": 701, 
+                    "FIELD": ".03", 
+                    "FILE": 1001
+                }, 
+                "TEXT": [
+                    "The value '1880' for field YEAR COMPOSED in file BACH WERKE VERZEICHNIS is not valid."
+                ]
+            }
+        ], 
+        "message": "Bad Request", 
+        "request": "POST /fileman/fda flags=E"
+    }
+}
