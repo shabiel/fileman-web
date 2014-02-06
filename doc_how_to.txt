@@ -1,0 +1,175 @@
+Input to what File: PACKAGE// WEB SERVICE URL HANDLER  
+                                          (13 entries)
+EDIT WHICH FIELD: ALL// 
+
+
+Select WEB SERVICE URL HANDLER HTTP VERB: ??
+    
+   Choose from:
+   GET   fileman/dd/{fields}   DD&#94;DDWC001   
+   GET   fileman/{file}/{iens}   F&#94;%W0   
+   GET   fileman/{file}/{iens}/{field}   FV&#94;%W0   
+   GET   filesystem/*   FILESYS&#94;%W0   
+   GET   mocha/{type}   MOCHA&#94;%W0   
+   GET   r/{routine?.1"%25".32AN}   R&#94;%W0   
+   GET   xml   XML&#94;VPRJRSP   
+   OPTIONS   rpc/{rpc}   RPCO&#94;%W0   
+   POST   MOCHA/ordercheck   MOCHAP&#94;%W0   
+   POST   fileman/vals   VALS&#94;DDWC001   
+   POST   mocha/{type}   MOCHAP&#94;%W0   
+   POST   rpc/{rpc}   RPC&#94;%W0   
+   POST   xmlpost   POSTTEST&#94;%W0   
+   PUT   r/{routine?.1"%25".32AN}   PR&#94;%W0   
+         
+        You may enter a new WEB SERVICE URL HANDLER, if you wish
+   Choose from: 
+          POST       POST
+          PUT        PUT
+          GET        GET                    
+          DELETE     DELETE
+          OPTIONS    OPTIONS
+          HEAD       HEAD
+          TRACE      TRACE
+          CONNECT    CONNECT
+   
+Select WEB SERVICE URL HANDLER HTTP VERB: POST
+                                     URI: fileman/fda    
+                      EXECUTION ENDPOINT: FDAPOST^DDWC001
+
+  Are you adding 'POST' as a new WEB SERVICE URL HANDLER (the 14TH)? No// Y
+  (Yes)
+URI: fileman/fda// 
+EXECUTION ENDPOINT: FDAPOST^DDWC001// 
+AUTHENTICATION REQUIRED?: Y  YES
+KEY: 
+REVERSE KEY: 
+OPTION: 
+
+
+FDAPOST(ARGS,BODY,RESULT) ; Post an FDA directly to update Fileman Data                                                               
+ K ^KBANFDA ZSHOW "*":^KBANFDA
+ QUIT ""
+ ;
+ ;
+sakura@icarus:/var2/local/foia201303-2$ curl -k -XPOST https://thebes.smh101.com/fileman/fda -d@-
+FDA(1001,"+1,",.01)="ABC"
+FDA(1001,"+1,",1)="DEF"
+<CTRL-D>
+
+Looking at the result, we see this, and can happily confirm that the server is working.
+
+^KBANFDA("S",1)="FDAPOST+1^DDWC001"
+^KBANFDA("S",2)="        Indirection"
+^KBANFDA("S",3)="RESPOND+14^VPRJRSP"
+^KBANFDA("S",4)="RESPOND+11^VPRJRSP"
+^KBANFDA("S",5)="WAIT+36^VPRJREQ"
+^KBANFDA("V",1)="%=""71.37.7.7"""
+^KBANFDA("V",2)="%WOS=""GT.M"""
+^KBANFDA("V",3)="%WTCP=0"
+^KBANFDA("V",4)="BODY(1)=""FDA(1001,""""+1,"""",.01)=""""ABC""""FDA(1001,""""+1,"""",1)=""""DEF"""""""
+^KBANFDA("V",5)="*HTTPARGS=ARGS"
+^KBANFDA("V",6)="HTTPERR=0"
+^KBANFDA("V",7)="HTTPLOG=0"
+^KBANFDA("V",8)="HTTPLOG(""DT"")=63221"
+^KBANFDA("V",9)="HTTPLOG(""ID"")=30"
+^KBANFDA("V",10)="HTTPREQ(""header"")=""content-type"""
+^KBANFDA("V",11)="HTTPREQ(""header"",""accept"")=""*/*"""
+^KBANFDA("V",12)="HTTPREQ(""header"",""content-length"")=48"
+^KBANFDA("V",13)="HTTPREQ(""header"",""content-type"")=""application/x-www-form-urlencoded"""
+^KBANFDA("V",14)="HTTPREQ(""header"",""host"")=""thebes.smh101.com"""
+^KBANFDA("V",15)="HTTPREQ(""header"",""user-agent"")=""curl/7.22.0 (x86_64-pc-linux-gnu) libcurl/7.22.0 OpenSSL/1.0.1 zlib/1.2.3.4 lib
+          idn/1.23 librtmp/2.3"""
+^KBANFDA("V",16)="HTTPREQ(""method"")=""POST"""
+^KBANFDA("V",17)="HTTPREQ(""paging"")=""0:999999"""
+^KBANFDA("V",18)="HTTPREQ(""path"")=""/fileman/fda"""
+^KBANFDA("V",19)="HTTPREQ(""query"")="""""
+^KBANFDA("V",20)="HTTPREQ(""store"")=""data"""
+^KBANFDA("V",21)="IO(""IP"")=""71.37.7.7"""
+^KBANFDA("V",22)="*RESULT=HTTPRSP"
+^KBANFDA("V",23)="ROUTINE=""FDAPOST^DDWC001"""
+^KBANFDA("V",24)="TCPX="""""
+
+The variable we are most interested in is `BODY`. That contains the posted/putted data. In this case, our two lines seem to have been jumbled together. I actually know from previous experience that this happens with curl when using --data option. Instead, we need to use the --data-binary option so that new lines won't get stripped away.
+
+sakura@icarus:/var2/local/foia201303-2$ curl -k -XPOST https://thebes.smh101.com/fileman/fda --data-binary @-
+FDA(1001,"+1,",.01)="ABC"
+FDA(1001,"+1,",1)="DEF"
+
+Now, we see that the data printed out as follows, which is much more to our liking.
+
+^KBANFDA("V",4)="BODY(1)=""FDA(1001,""""+1,"""",.01)=""""ABC""""""_$C(10)_""FDA(1001,""""+1,"""",1)=""""DEF""""""_$C(10)"
+
+Now, let's edit the routine to parse the FDA:
+
+FDAPOST(ARGS,BODY,RESULT) ; Post an FDA directly to update Fileman Data
+ N PARSED ; Parsed array which stores each line on a separate node.
+ D PARSE10^VPRJRUT(.BODY,.PARSED) ; Parser                                                                                            
+ K ^KBANFDA M ^KBANFDA=PARSED                                                                                                         
+ QUIT ""
+ ;
+
+Now, here's the result:
+GTM>zwrite ^KBANFDA
+^KBANFDA(1)="FDA(1001,""+1,"",.01)=""ABC"""
+^KBANFDA(2)="FDA(1001,""+1,"",1)=""DEF"""
+^KBANFDA(3)=""
+
+This is actually good enough to help us write the rest of the code.
+
+Let's do it, assuming we are using FDA as the variable:
+
+ FDAPOST(ARGS,BODY,RESULT) ; Post an FDA directly to update Fileman Data
+  N PARSED ; Parsed array which stores each line on a separate node.
+  D PARSE10^VPRJRUT(.BODY,.PARSED) ; Parser
+  N I S I="" 
+  F  S I=$O(PARSED(I)) Q:I=""  D                                                                                                       
+  . I PARSED(I)'="" S @PARSED(I)
+  D UPDATE^DIE("",$NA(FDA))
+  QUIT ""
+
+At the same time, on this instance, we need to make sure we are making a valid FDA. Here's the condensed DD...
+
+CONDENSED DATA DICTIONARY---BACH WERKE VERZEICHNIS FILE (#1001) 
+
+STORED IN: ^BWV(                                          FEB 3,2014  PAGE 1
+--------------------------------------------------------------------------------
+
+                                                  FILE SECURITY
+                                   DD SECURITY    :       DELETE SECURITY: 
+                                   READ SECURITY  :       LAYGO SECURITY : 
+                                   WRITE SECURITY : 
+CROSS REFERENCED BY:
+      BWV NUMBER(B) 
+
+
+                                 FILE STRUCTURE
+
+FIELD     FIELD
+NUMBER    NAME
+
+.01       BWV NUMBER (RFJ7), [0;1]
+.02       WORK TITLE (FJ200), [0;2]
+.03       YEAR COMPOSED (NJ4,0), [0;3]
+1         INSTRUMENT (Multiple-1001.01), [1;0]
+          .01  INSTRUMENT (MFJ100), [0;1]
+          .02  NUMBER (NJ2,0), [0;2]
+2.1       KEY (P1002), [2;1]
+
+Now, let's go ahead and file the data with curl.
+curl -k -XPOST https://thebes.smh101.com/fileman/fda --data-binary @-
+FDA(1001,"+1,",.01)=565
+FDA(1001,"+1,",.02)="Toccata and Fugue"
+FDA(1001,"+1,",.03)=1780
+<CTRL-D><CTRL-D>
+
+Now, let's check our handy work:
+
+Output from what File: BACH WERKE VERZEICHNIS//   (6 entries)
+Select BACH WERKE VERZEICHNIS BWV NUMBER: 565       Toccata and Fugue     
+Another one: 
+Standard Captioned Output? Yes//   (Yes)
+Include COMPUTED fields:  (N/Y/R/B): NO//  - No record number (IEN), no Computed Fields
+
+BWV NUMBER: 565                         WORK TITLE: Toccata and Fugue
+  YEAR COMPOSED: 1780
+
